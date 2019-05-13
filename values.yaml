@@ -1,0 +1,30 @@
+apiRelease: v3.0.0-alpha.14.5
+replicaCount: 1
+imagePullPolicy: IfNotPresent
+appName: strapi-app
+dbSsl: false
+
+service:
+    type: ClusterIP
+    internalPort: 1337
+    externalPort: 1337
+
+ingress:
+    host: 192.168.18.135.nip.io
+    path: strapi
+
+mongodb:
+    type: ClusterIP
+    clusterIP: None
+    port: 27017
+        # clusterIP: None
+    mongodbDatabase: strapi
+    mongodbUsername:
+    persistence:
+        enabled: true
+        ## If defined, volume.beta.kubernetes.io/storage-class: <storageClass>
+        ## Default: volume.alpha.kubernetes.io/storage-class: default
+        ##
+        # storageClass:
+        accessMode: ReadWriteOnce
+        size: 1Gi

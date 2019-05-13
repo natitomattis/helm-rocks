@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "strapi.fullname" . }}
+  labels:
+    app: {{ template "strapi.fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "strapi.fullname" . }}
+        release: "{{ .Release.Name }}"
+    spec:
+      containers:
+      - name: {{ template "strapi.fullname" . }}
+        image: strapi/strapi:{{ .Values.apiRelease }}
+        imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+        env:
+        - name: APP_NAME
+          value: {{ default "strapi-app" .Values.appName | quote }}
+        - name: DATABASE_PORT
+          value: {{ default "27017" .Values.mongodb.port | quote }}
+        - name: DATABASE_CLIENT
+          value: {{ default "mongo" .Values.dbClient | quote }}
+        - name: DATABASE_HOST
+          value: {{ template "mongodb.fullname" . }}
+        - name: DATABASE_NAME
+          value: {{ default "strapi" .Values.mongodb.mongodbDatabase | quote }}
+        - name: DATABASE_USERNAME
+          value: {{ default "" .Values.mongodb.mongodbUsername | quote }}
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "mongodb.fullname" . }}
+              key: mongodb-password
+        - name: DATABASE_SSL
+          value: {{ default "false" .Values.dbSsl | quote }}
+        - name: DATABASE_AUTHENTICATION_DATABASE
+          value: {{ default "strapi" .Values.mongodb.mongodbDatabase | quote }}
+        - name: HOST
+          value: 
+        ports:
+        - containerPort: {{ default 1337 .Values.service.internalPort }}
+          protocol: TCP
+        resources: {}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
