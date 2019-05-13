@@ -1,0 +1,285 @@
+[debug] Created tunnel using local port: '36953'
+
+[debug] SERVER: "127.0.0.1:36953"
+
+[debug] Original chart version: ""
+[debug] CHART PATH: /home/natitomattis/Desktop/k8s/helm-rocks/strapi
+
+NAME:   holas2
+REVISION: 1
+RELEASED: Sun May 12 23:46:03 2019
+CHART: strapi-0.1.0
+USER-SUPPLIED VALUES:
+{}
+
+COMPUTED VALUES:
+apiRelease: v3.0.0-alpha.14.5
+appName: strapi-app
+dbSsl: false
+imagePullPolicy: IfNotPresent
+ingress:
+  host: 192.168.18.135.nip.io
+  path: strapi
+mongodb:
+  clusterIP: None
+  global: {}
+  image: bitnami/mongodb:3.7.1-r0
+  livenessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  mongodbDatabase: strapi
+  mongodbUsername: null
+  nodeSelector: {}
+  persistence:
+    accessMode: ReadWriteOnce
+    enabled: true
+    size: 1Gi
+  port: 27017
+  readinessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  serviceType: ClusterIP
+  type: ClusterIP
+replicaCount: 1
+service:
+  externalPort: 1337
+  internalPort: 1337
+  type: ClusterIP
+
+HOOKS:
+MANIFEST:
+
+---
+# Source: strapi/charts/mongodb/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: holas2-mongodb
+  labels:
+    app: holas2-mongodb
+    chart: "mongodb-0.4.29"
+    release: "holas2"
+    heritage: "Tiller"
+type: Opaque
+data:
+  
+  mongodb-root-password: "Mk90ZU5zV01mcw=="
+  
+  
+  mongodb-password: "aXBnRkRrNkc5aA=="
+---
+# Source: strapi/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: holas2-configmap
+  labels:
+    generator: helm
+    date: 2019-05-13
+    chart: strapi
+    version: 0.1.0
+data:
+  myvalue: "Hello World"
+---
+# Source: strapi/charts/mongodb/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: holas2-mongodb
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "1Gi"
+---
+# Source: strapi/charts/mongodb/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: holas2-mongodb
+  labels:
+    app: holas2-mongodb
+    chart: "mongodb-0.4.29"
+    release: "holas2"
+    heritage: "Tiller"
+spec:
+  type: ClusterIP
+  ports:
+  - name: mongodb
+    port: 27017
+    targetPort: mongodb
+  selector:
+    app: holas2-mongodb
+---
+# Source: strapi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: holas2-strapi
+  labels:
+    chart: "strapi-0.1.0"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 1337
+    targetPort: 1337
+    protocol: TCP
+  selector:
+    app: holas2-strapi
+---
+# Source: strapi/charts/mongodb/templates/deployment.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: holas2-mongodb
+  labels:
+    app: holas2-mongodb
+    chart: "mongodb-0.4.29"
+    release: "holas2"
+    heritage: "Tiller"
+spec:
+  template:
+    metadata:
+      labels:
+        app: holas2-mongodb
+    spec:
+      containers:
+      - name: holas2-mongodb
+        image: "bitnami/mongodb:3.7.1-r0"
+        imagePullPolicy: ""
+        env:
+        - name: MONGODB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: holas2-mongodb
+              key: mongodb-root-password
+        - name: MONGODB_USERNAME
+          value: ""
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: holas2-mongodb
+              key: mongodb-password
+        - name: MONGODB_DATABASE
+          value: "strapi"
+        ports:
+        - name: mongodb
+          containerPort: 27017
+        livenessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          failureThreshold: 6
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          
+        readinessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          failureThreshold: 6
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+          
+        volumeMounts:
+        - name: data
+          mountPath: /bitnami/mongodb
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: holas2-mongodb
+---
+# Source: strapi/templates/deploy.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: holas2-strapi
+  labels:
+    app: holas2-strapi
+    chart: "strapi-0.1.0"
+    release: "holas2"
+    managed-by: Tiller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: holas2-strapi
+        release: "holas2"
+    spec:
+      containers:
+      - name: holas2-strapi
+        image: strapi/strapi:v3.0.0-alpha.14.5
+        imagePullPolicy: "IfNotPresent"
+        env:
+        - name: APP_NAME
+          value: "strapi-app"
+        - name: DATABASE_PORT
+          value: "27017"
+        - name: DATABASE_CLIENT
+          value: "mongo"
+        - name: DATABASE_HOST
+          value: holas2-mongodb
+        - name: DATABASE_NAME
+          value: "strapi"
+        - name: DATABASE_USERNAME
+          value: ""
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: holas2-mongodb
+              key: mongodb-password
+        - name: DATABASE_SSL
+          value: "false"
+        - name: DATABASE_AUTHENTICATION_DATABASE
+          value: "strapi"
+        - name: HOST
+          value: 
+        ports:
+        - containerPort: 1337
+          protocol: TCP
+        resources: {}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+# Source: strapi/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-strapi-helm
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  type: ClusterIP
+  rules:
+  - host: 192.168.18.135.nip.io
+    http:
+      paths:
+      - path: /strapi
+        backend:
+          serviceName: holas2-strapi
+          servicePort: 1337
